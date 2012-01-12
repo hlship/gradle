@@ -15,8 +15,10 @@
  */
 package org.gradle.launcher.daemon.client;
 
-import org.gradle.internal.service.ServiceRegistry;
+import org.gradle.api.specs.Specs;
 import org.gradle.internal.Factory;
+import org.gradle.internal.nativeplatform.ProcessEnvironment;
+import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.launcher.daemon.context.DaemonContext;
 import org.gradle.launcher.daemon.context.DaemonContextBuilder;
 import org.gradle.launcher.daemon.registry.DaemonDir;
@@ -31,9 +33,11 @@ import org.gradle.launcher.daemon.server.exec.DefaultDaemonCommandExecuter;
 import org.gradle.logging.LoggingServiceRegistry;
 import org.gradle.logging.internal.OutputEvent;
 import org.gradle.logging.internal.OutputEventListener;
+import org.gradle.logging.internal.OutputEventRenderer;
 import org.gradle.messaging.concurrent.DefaultExecutorFactory;
 import org.gradle.messaging.concurrent.ExecutorFactory;
-import org.gradle.internal.nativeplatform.ProcessEnvironment;
+
+import java.io.FileDescriptor;
 
 /**
  * Wires together the embedded daemon client.
@@ -60,7 +64,7 @@ public class EmbeddedDaemonClientServices extends DaemonClientServicesSupport {
     }
 
     protected DaemonCommandExecuter createDaemonCommandExecuter() {
-         return new DefaultDaemonCommandExecuter(getLoggingServices(), get(ExecutorFactory.class), get(ProcessEnvironment.class));
+         return new DefaultDaemonCommandExecuter(new OutputEventRenderer(Specs.<FileDescriptor>satisfyNone()), getLoggingServices(), get(ExecutorFactory.class), get(ProcessEnvironment.class));
     }
 
     public EmbeddedDaemonClientServices(ServiceRegistry loggingServices, boolean displayOutput) {

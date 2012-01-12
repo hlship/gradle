@@ -23,6 +23,7 @@ import org.gradle.launcher.daemon.context.DaemonContext;
 import org.gradle.launcher.daemon.protocol.Command;
 import org.gradle.launcher.daemon.server.DaemonStateCoordinator;
 import org.gradle.logging.LoggingManagerInternal;
+import org.gradle.logging.internal.OutputEventRenderer;
 import org.gradle.messaging.concurrent.ExecutorFactory;
 import org.gradle.messaging.remote.internal.Connection;
 import org.gradle.messaging.remote.internal.DisconnectAwareConnectionDecorator;
@@ -36,12 +37,14 @@ import java.util.List;
  */
 public class DefaultDaemonCommandExecuter implements DaemonCommandExecuter {
 
+    private final OutputEventRenderer renderer;
     private final ExecutorFactory executorFactory;
     private final LoggingManagerInternal loggingManager;
     private final GradleLauncherFactory launcherFactory;
     private final ProcessEnvironment processEnvironment;
 
-    public DefaultDaemonCommandExecuter(ServiceRegistry loggingServices, ExecutorFactory executorFactory, ProcessEnvironment processEnvironment) {
+    public DefaultDaemonCommandExecuter(OutputEventRenderer renderer, ServiceRegistry loggingServices, ExecutorFactory executorFactory, ProcessEnvironment processEnvironment) {
+        this.renderer = renderer;
         this.executorFactory = executorFactory;
         this.processEnvironment = processEnvironment;
         this.loggingManager = loggingServices.getFactory(LoggingManagerInternal.class).create();
@@ -66,7 +69,7 @@ public class DefaultDaemonCommandExecuter implements DaemonCommandExecuter {
             new HandleStop(),
             new StartBuildOrRespondWithBusy(),
             new EstablishBuildEnvironment(processEnvironment),
-            new LogToClient(loggingManager), // from this point down, logging is sent back to the client
+            new LogToClient(loggingManager, renderer), // from this point down, logging is sent back to the client
             new ForwardClientInput(executorFactory),
             new ReturnResult(),
             new ResetDeprecationLogger(),

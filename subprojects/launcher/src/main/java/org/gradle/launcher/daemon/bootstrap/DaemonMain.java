@@ -17,6 +17,7 @@ package org.gradle.launcher.daemon.bootstrap;
 
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
+import org.gradle.api.specs.Specs;
 import org.gradle.launcher.daemon.context.DaemonContext;
 import org.gradle.launcher.daemon.registry.DaemonDir;
 import org.gradle.launcher.daemon.server.Daemon;
@@ -26,6 +27,7 @@ import org.gradle.launcher.daemon.server.DaemonStoppedException;
 import org.gradle.launcher.exec.EntryPoint;
 import org.gradle.launcher.exec.ExecutionListener;
 import org.gradle.logging.LoggingServiceRegistry;
+import org.gradle.logging.internal.OutputEventRenderer;
 
 import java.io.*;
 import java.util.UUID;
@@ -78,14 +80,17 @@ public class DaemonMain extends EntryPoint {
     }
 
     protected void doAction(ExecutionListener listener) {
-        DaemonServices daemonServices = new DaemonServices(daemonBaseDir, idleTimeoutMs, LoggingServiceRegistry.newChildProcessLogging());
+        OutputEventRenderer renderer = new OutputEventRenderer(Specs.<FileDescriptor>satisfyNone());
+        DaemonServices daemonServices = new DaemonServices(renderer, daemonBaseDir, idleTimeoutMs, LoggingServiceRegistry.newChildProcessLogging());
         DaemonDir daemonDir = daemonServices.get(DaemonDir.class);
         final DaemonContext daemonContext = daemonServices.get(DaemonContext.class);
         final Long pid = daemonContext.getPid();
 
         if (redirectIo) {
             try {
-                redirectOutputsAndInput(daemonDir, pid);
+                PrintStream printStream = redirectOutputsAndInput(daemonDir, pid);
+                renderer.addStandardError(printStream);
+                renderer.addStandardOutput(printStream);
             } catch (IOException e) {
                 listener.onFailure(e);
                 return;
@@ -110,7 +115,7 @@ public class DaemonMain extends EntryPoint {
         }
     }
 
-    private static void redirectOutputsAndInput(DaemonDir daemonDir, Long pid) throws IOException {
+    private static PrintStream redirectOutputsAndInput(DaemonDir daemonDir, Long pid) throws IOException {
         PrintStream originalOut = System.out;
         PrintStream originalErr = System.err;
 //        InputStream originalIn = System.in;
@@ -126,5 +131,6 @@ public class DaemonMain extends EntryPoint {
         originalErr.close();
         // TODO - make this work on windows
 //        originalIn.close();
+        return printStream;
     }
 }

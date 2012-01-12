@@ -25,6 +25,7 @@ import org.gradle.launcher.daemon.context.DaemonContextBuilder;
 import org.gradle.launcher.daemon.registry.DaemonRegistry;
 import org.gradle.launcher.daemon.registry.DaemonRegistryServices;
 import org.gradle.launcher.daemon.server.exec.DefaultDaemonCommandExecuter;
+import org.gradle.logging.internal.OutputEventRenderer;
 import org.gradle.messaging.concurrent.DefaultExecutorFactory;
 import org.gradle.messaging.concurrent.ExecutorFactory;
 import org.gradle.process.internal.JvmOptions;
@@ -36,11 +37,13 @@ import java.lang.management.ManagementFactory;
  * Takes care of instantiating and wiring together the services required by the daemon server.
  */
 public class DaemonServices extends DefaultServiceRegistry {
+    private final OutputEventRenderer renderer;
     private final File daemonBaseDir;
     private final Integer idleTimeoutMs;
     private final ServiceRegistry loggingServices;
 
-    public DaemonServices(File daemonBaseDir, Integer idleTimeoutMs, ServiceRegistry loggingServices) {
+    public DaemonServices(OutputEventRenderer renderer, File daemonBaseDir, Integer idleTimeoutMs, ServiceRegistry loggingServices) {
+        this.renderer = renderer;
         this.daemonBaseDir = daemonBaseDir;
         this.idleTimeoutMs = idleTimeoutMs;
         this.loggingServices = loggingServices;
@@ -72,10 +75,10 @@ public class DaemonServices extends DefaultServiceRegistry {
                 get(DaemonContext.class),
                 "password",
                 new DefaultDaemonCommandExecuter(
+                        renderer,
                         loggingServices,
                         get(ExecutorFactory.class),
                         get(ProcessEnvironment.class)),
                 get(ExecutorFactory.class));
     }
-
 }

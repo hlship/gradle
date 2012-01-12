@@ -15,21 +15,24 @@
  */
 package org.gradle.launcher.daemon.server.exec;
 
+import org.gradle.launcher.daemon.protocol.Build;
 import org.gradle.logging.LoggingManagerInternal;
 import org.gradle.logging.internal.OutputEvent;
 import org.gradle.logging.internal.OutputEventListener;
-import org.gradle.launcher.daemon.protocol.Build;
+import org.gradle.logging.internal.OutputEventRenderer;
 
 class LogToClient extends BuildCommandOnly {
     
     private final LoggingManagerInternal loggingManager;
-    
-    public LogToClient(LoggingManagerInternal loggingManager) {
+    private final OutputEventRenderer renderer;
+
+    public LogToClient(LoggingManagerInternal loggingManager, OutputEventRenderer renderer) {
         this.loggingManager = loggingManager;
+        this.renderer = renderer;
     }
         
     protected void doBuild(final DaemonCommandExecution execution, Build build) {
-        OutputEventListener listener = new OutputEventListener() {
+        OutputEventListener outputForwarder = new OutputEventListener() {
             public void onOutput(OutputEvent event) {
                 try {
                     execution.getConnection().dispatch(event);
@@ -39,14 +42,23 @@ class LogToClient extends BuildCommandOnly {
                 }
             }
         };
-        
+
         loggingManager.setLevel(build.getStartParameter().getLogLevel());
         loggingManager.start();
-        loggingManager.addOutputEventListener(listener);
+        loggingManager.addOutputEventListener(outputForwarder);
+
+        //TODO SF this is not beautiful at all.
+        //Currently, the DaemonMain replaces the sys out with something that prints to a file (daemon log)
+        //sometime later LogToClient kicks in and replaces sys out again (loggingManager.start())
+        //it would be nice if logging complexity was in one place and replacing of the sys out happened once, as early as possible.
+        //for now, let's just add the renderer carried over here from the DaemonMain
+        //it's not nice though, because the build request might have high log level and we won't see much stuff in the daemon log anyway :(
+        loggingManager.addOutputEventListener(renderer);
+
         try {
             execution.proceed();
         } finally {
-            loggingManager.removeOutputEventListener(listener);
+            loggingManager.removeOutputEventListener(outputForwarder);
             loggingManager.stop();
         }
     } 
