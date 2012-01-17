@@ -100,6 +100,10 @@ public class DaemonParameters {
         Map<String, String> systemProperties = new HashMap<String, String>();
         GUtil.addToMap(systemProperties, jvmOptions.getSystemProperties());
         GUtil.addToMap(systemProperties, System.getProperties());
+        //let that variable be set automatically by jvm from the executable
+        //when the process starts. All that effort so that we can honor the {@link #javaHome} setting.
+        //it does not make sense to update this property per job as we have a daemon per java home anyway
+        systemProperties.remove("java.home");
         return systemProperties;
     }
 
