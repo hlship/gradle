@@ -56,7 +56,10 @@ assert System.getProperty('some-prop') == 'some-value'
         dist.file('gradle.properties') << "org.gradle.java.home=$javaHome"
 
         when:
-        BuildEnvironment env = toolingApi.withConnection { connection -> connection.getModel(BuildEnvironment.class) }
+        BuildEnvironment env = toolingApi.withConnection { connection ->
+            connection.newBuild().run() //the assert
+            connection.getModel(BuildEnvironment.class)
+        }
 
         then:
         env.java.javaHome == javaHome
