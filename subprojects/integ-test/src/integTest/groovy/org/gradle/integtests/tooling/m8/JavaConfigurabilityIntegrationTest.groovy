@@ -146,7 +146,7 @@ assert System.getProperty('some-prop') == 'BBB'
 
         when:
         def env = withConnection {
-            it.newBuild().run() //the assert
+            it.newBuild().setJavaHome(javaHome).run() //the assert
             it.model(BuildEnvironment.class)
                     .setJavaHome(javaHome)
                     .get()
