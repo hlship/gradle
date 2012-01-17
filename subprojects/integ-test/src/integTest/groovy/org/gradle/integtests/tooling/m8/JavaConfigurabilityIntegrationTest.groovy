@@ -141,7 +141,7 @@ assert System.getProperty('some-prop') == 'BBB'
         File javaHome = AvailableJavaHomes.bestAlternative
         File dummyJavaHome = dist.file("dummyJavaHome").createDir()
 
-        dist.file('build.gradle') << "assert System.getProperty('java.home').startsWith($javaHome)"
+        dist.file('build.gradle') << "assert System.getProperty('java.home').startsWith('$javaHome')"
         dist.file('gradle.properties') << "org.gradle.java.home=${dummyJavaHome.absolutePath}"
 
         when:

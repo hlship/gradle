@@ -51,7 +51,7 @@ assert System.getProperty('some-prop') == 'some-value'
     def "tooling api honours java home specified in gradle.properties"() {
         File javaHome = AvailableJavaHomes.bestAlternative
         
-        dist.file('build.gradle') << "assert System.getProperty('java.home') == $javaHome"
+        dist.file('build.gradle') << "assert System.getProperty('java.home').startsWith('$javaHome')"
         
         dist.file('gradle.properties') << "org.gradle.java.home=$javaHome"
 
