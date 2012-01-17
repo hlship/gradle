@@ -411,7 +411,7 @@ assert System.getProperty('some-prop') == 'some-value'
         distribution.file("gradle.properties") << "org.gradle.java.home=$javaHome"
 
         expect:
-        buildSucceeds "assert System.getProperty('java.home').startsWith($javaHome)"
+        buildSucceeds "assert System.getProperty('java.home').startsWith('$javaHome')"
     }
 
     def cleanup() {
