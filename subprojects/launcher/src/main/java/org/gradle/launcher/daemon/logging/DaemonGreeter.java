@@ -19,7 +19,7 @@ package org.gradle.launcher.daemon.logging;
 import org.apache.commons.io.IOUtils;
 import org.gradle.api.GradleException;
 
-import java.io.PrintStream;
+import java.io.*;
 import java.util.List;
 
 /**
@@ -34,28 +34,18 @@ public class DaemonGreeter {
         }
     }
 
-    public void verifyGreetingReceived(Process process) {
+    public void verifyGreetingReceived(InputStream processOutput) {
         List<String> lines;
         try {
-            lines = IOUtils.readLines(process.getInputStream());
+            lines = IOUtils.readLines(processOutput);
         } catch (Exception e) {
             throw new GradleException("Unable to get a greeting message from the daemon process."
                     + " Most likely the daemon process cannot be started.", e);
         }
 
-        String lastMessage = lines.get(lines.size() - 1);
+        String lastMessage = lines.size() == 0? "" : lines.get(lines.size() - 1);
         if (!lastMessage.equals(DaemonMessages.PROCESS_STARTED)) {
-            // consider waiting a bit for the exit value
-            // if exit value not provided warn that the daemon didn't exit
-            int exitValue;
-            try {
-                exitValue = process.exitValue();
-            } catch (IllegalThreadStateException e) {
-                throw new GradleException(
-                    DaemonMessages.UNABLE_TO_START_DAEMON + " However, it appears the process hasn't exit yet."
-                    + "\n" + processOutput(lines));
-            }
-            throw new GradleException(DaemonMessages.UNABLE_TO_START_DAEMON + " The exit value was: " + exitValue + "."
+            throw new GradleException(DaemonMessages.UNABLE_TO_START_DAEMON
                     + "\n" + processOutput(lines));
         }
     }
@@ -72,5 +62,25 @@ public class DaemonGreeter {
             sb.append(line).append("\n");
         }
         return sb.toString();
+    }
+
+    public void verifyGreetingReceived(File output, int maxWaitTime) {
+        long max = System.currentTimeMillis() + maxWaitTime;
+        while(System.currentTimeMillis() < max) {
+            if (output.exists()) {
+                try {
+                    verifyGreetingReceived(new FileInputStream(output));
+                } catch (FileNotFoundException e) {
+                    throw new RuntimeException(e);
+                } catch (GradleException e) {
+                    //ignore
+                }
+            }
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

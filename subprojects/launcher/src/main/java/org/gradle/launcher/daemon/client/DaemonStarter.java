@@ -87,10 +87,18 @@ public class DaemonStarter implements Runnable {
                     commandLine.append(arg);
                     commandLine.append("\" ");
                 }
+                File tempOut = new File(daemonDir.getVersionedDir(), "windows-temp.log");
+                tempOut.createNewFile();
+                if (!tempOut.exists()) {
+                    throw new GradleException("Internal error. Why this file does not exist?");
+                }
+                commandLine.append("> \"").append(tempOut.getAbsolutePath()).append('"');
+                LOGGER.info("Starting process on windows. Complete command is: " + commandLine + ", temp folder is: " + System.getProperty(" java.io.tmpdir"));
                 new WindowsProcessStarter().start(workingDir, commandLine.toString());
+                new DaemonGreeter().verifyGreetingReceived(tempOut, 15000);
             } else {
                 Process process = new ProcessBuilder(args).redirectErrorStream(true).directory(workingDir).start();
-                new DaemonGreeter().verifyGreetingReceived(process);
+                new DaemonGreeter().verifyGreetingReceived(process.getInputStream());
 
                 process.getOutputStream().close();
                 process.getErrorStream().close();
